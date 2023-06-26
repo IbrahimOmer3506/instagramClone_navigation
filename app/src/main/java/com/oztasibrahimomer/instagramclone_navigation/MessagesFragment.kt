@@ -8,9 +8,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.oztasibrahimomer.instagramclone_navigation.MessageAdapter
@@ -92,10 +94,12 @@ class MessagesFragment : Fragment() {
 
         val userEmail = auth.currentUser!!.email
 
-        val hashMap = HashMap<String, String>()
+        val hashMap = HashMap<String, Any>()
 
         hashMap.put("message", message)
         hashMap.put("userEmail", userEmail!!)
+
+        hashMap.put("newDate",Timestamp.now())
         val r=UUID.randomUUID()
 
        // val degisken="${r}"
@@ -110,24 +114,36 @@ class MessagesFragment : Fragment() {
 
                 binding.messageEditText.text.clear()
 
-               messageCollection.get().addOnSuccessListener {
-
-                   messagaList.clear()
-
-                   for (documentSnapshot in it){
-
-                       val gelenMessage=documentSnapshot.getString("message") as String
-
-                       val gelenEmail=documentSnapshot.getString("userEmail") as String
-
-                       val mesaj =Message(gelenMessage,gelenEmail)
-
-                       messagaList.add(mesaj)
 
 
+               messageCollection.orderBy("newDate",Query.Direction.DESCENDING).addSnapshotListener { value, error ->
+
+
+                   if(error!=null){
+
+                       Toast.makeText(requireContext(),error.localizedMessage,Toast.LENGTH_LONG).show()
                    }
 
-                   myAdapter!!.notifyDataSetChanged()
+                   if(value!=null && !value.isEmpty){
+
+                       messagaList.clear()
+
+                       val documents =value.documents
+
+                       for(document in documents){
+
+                           val gelenMessage=document.get("message") as String
+                           val gelenEmail=document.get("userEmail") as String
+
+                           val mesaj=Message(gelenMessage,gelenEmail)
+
+                           messagaList.add(mesaj)
+                       }
+
+
+                       myAdapter!!.notifyDataSetChanged()
+
+                   }
                }
 
 
